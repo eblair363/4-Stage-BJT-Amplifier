@@ -19,7 +19,9 @@ mkdir -p docs/schematic docs/renders fab/gerbers
 
 echo "==> Schematic PDF + SVG"
 kicad-cli sch export pdf -o docs/schematic/Amplifier-schematic.pdf "$SCH"
-kicad-cli sch export svg --no-background-color -o docs/schematic "$SCH"
+# White background, not transparent: a transparent SVG with black strokes is
+# invisible on GitHub's dark theme.
+kicad-cli sch export svg -o docs/schematic "$SCH"
 
 echo "==> Board renders (top and angled)"
 kicad-cli pcb render --side top  --quality high --width 1600 --height 1200 \
