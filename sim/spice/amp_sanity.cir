@@ -1,0 +1,74 @@
+* amp_sanity.cir -- 4-transistor amp, PCB sanity check (LTspice netlist)
+*
+* Open: LTspice > File > Open, set the file-type filter to "Netlists".
+* Results: Ctrl+L (View > SPICE Error Log) shows every .meas and .four line.
+* Node names match the KiCad net labels / test points.
+*
+* Run ONE analysis at a time: uncomment one of the three lines at the bottom.
+*
+* ---- Values to compare -------------------------------------------------
+*   ORIGINAL (as ordered):   R4v=330  R8v=9.1
+*   RECOMMENDED:             R4v=365  R8v=10   (R4 trimmed on bench, see notes)
+.param R4v=330 R8v=9.1
+*
+* Output measurement setup: CL = what your measuring gear hangs on OUT.
+*   0.1p = nothing attached (ideal sim)
+*   15p  = 10x scope probe
+*   115p = ~1 m of coax into a 1 Mohm scope input
+.param CLv=0.1p
+
+* ---- Supply and source ---------------------------------------------------
+V2  VCC 0 24
+* 50 ohm = function generator output impedance
+V3  SRC 0 SINE(0 127m 10Meg) AC 1
+RS  SRC IN 50
+
+* ---- Stage 1: Q1/Q2 Darlington emitter follower ----------------------------
+C1  IN   Q1_B 100n
+R1  VCC  Q1_B 1Meg
+Q1  VCC  Q1_B Q2_B Q2N2222
+Q2  VCC  Q2_B Q2_E Q2N2222
+* R2 is the 2 W part: ~0.51 W at this bias
+R2  Q2_E 0    910
+
+* ---- Stage 2: Q4 common emitter + Q3 cascode -----------------------------
+C2  Q2_E Q4_B 100n
+R3  VCC  Q4_B 10k
+R4  Q4_B 0    {R4v}
+Q4  Q4_C Q4_B Q4_E Q2N2222
+R8  Q4_E 0    {R8v}
+Q3  Q3_C Q3_B Q4_C Q2N2222
+R5  VCC  Q3_B 100k
+R6  Q3_B 0    22k
+C3  Q3_B 0    100n
+R7  VCC  Q3_C 1k
+
+* ---- Output ----------------------------------------------------------------
+C4  Q3_C OUT  100n
+R9  OUT  0    1k
+CL  OUT  0    {CLv}
+
+* PSpice's classic Q2N2222 model (closest to your original PSpice numbers).
+* LTspice's own built-in "2N2222" gives ~5-10% lower bias current and gain;
+* swap the model name on Q1-Q4 to see how much the answer depends on the part.
+.model Q2N2222 NPN(Is=14.34f Xti=3 Eg=1.11 Vaf=74.03 Bf=255.9 Ne=1.307
++ Ise=14.34f Ikf=.2847 Xtb=1.5 Br=6.092 Nc=2 Isc=0 Ikr=0 Rc=1 Cjc=7.306p
++ Mjc=.3416 Vjc=.75 Fc=.5 Cje=22.01p Mje=.377 Vje=.75 Tr=46.91n Tf=411.1p
++ Itf=.6 Vtf=1.7 Xtf=3 Rb=10)
+
+* ---- Measurements (only the ones matching the active analysis run) -------
+.meas AC   gain_max MAX mag(V(OUT))
+.meas AC   gain_10M FIND mag(V(OUT)) AT 10Meg
+.meas AC   f_high WHEN mag(V(OUT))=gain_max/sqrt(2) FALL=LAST
+.meas TRAN vout_max MAX V(OUT) FROM 2u TO 4u
+.meas TRAN vout_min MIN V(OUT) FROM 2u TO 4u
+.meas TRAN p_load_W AVG V(OUT)*V(OUT)/1k FROM 2u TO 4u
+.meas TRAN i_q4_mA AVG 1000*V(Q4_E)/{R8v} FROM 2u TO 4u
+.four 10Meg V(OUT)
+
+* ---- Pick one -------------------------------------------------------------
+.op
+*.ac dec 200 10 1G
+*.tran 0 4u 0 0.2n
+
+.end

@@ -1,0 +1,96 @@
+* amp_sanity_ngspice.cir -- 4-transistor amp, PCB sanity check (ngspice port)
+*
+* Port of amp_sanity.cir (LTspice) to ngspice. Two differences from the
+* LTspice file:
+*   1. LTspice's SINE(...) is spelled SIN(...) here.
+*   2. LTspice's .meas cards are replaced by a .control block, so all three
+*      analyses run in one pass instead of one-at-a-time uncommenting.
+*
+* Run:  ngspice -b sim/spice/amp_sanity_ngspice.cir
+*
+* Node names match the KiCad net labels / test points.
+*
+* ---- Values ---------------------------------------------------------------
+*   AS BUILT (what the KiCad schematic and the ordered BOM carry): R4v=360 R8v=10
+*   ORIGINAL COURSE DESIGN (clips on the positive half):            R4v=330 R8v=9.1
+* The as-built values are active. Swap in the originals to reproduce the
+* clipped +3.0 V / -5.3 V waveform and the ~9.5 mW result from the PSpice run.
+.param R4v=360 R8v=10
+*
+* CL = whatever the measuring gear hangs on OUT.
+*   0.1p = nothing attached (ideal sim)
+*   15p  = 10x scope probe
+*   115p = ~1 m of coax into a 1 Mohm scope input
+.param CLv=0.1p
+
+* ---- Supply and source ----------------------------------------------------
+V2  VCC 0 24
+* 50 ohm = function generator output impedance
+V3  SRC 0 DC 0 AC 1 SIN(0 127m 10Meg)
+RS  SRC IN 50
+
+* ---- Stage 1: Q1/Q2 Darlington emitter follower ---------------------------
+C1  IN   Q1_B 100n
+R1  VCC  Q1_B 1Meg
+Q1  VCC  Q1_B Q2_B Q2N2222
+Q2  VCC  Q2_B Q2_E Q2N2222
+* R2 is the 2 W part: ~0.51 W at this bias
+R2  Q2_E 0    910
+
+* ---- Stage 2: Q4 common emitter + Q3 cascode ------------------------------
+C2  Q2_E Q4_B 100n
+R3  VCC  Q4_B 10k
+R4  Q4_B 0    R={R4v}
+Q4  Q4_C Q4_B Q4_E Q2N2222
+R8  Q4_E 0    R={R8v}
+Q3  Q3_C Q3_B Q4_C Q2N2222
+R5  VCC  Q3_B 100k
+R6  Q3_B 0    22k
+C3  Q3_B 0    100n
+R7  VCC  Q3_C 1k
+
+* ---- Output ---------------------------------------------------------------
+C4  Q3_C OUT  100n
+R9  OUT  0    1k
+CL  OUT  0    C={CLv}
+
+* PSpice's classic Q2N2222 model (closest to the original PSpice numbers).
+* Swapping in another 2N2222 model shifts bias current and gain by 5-10%,
+* which is the point of running two models before trusting a number.
+.model Q2N2222 NPN(Is=14.34f Xti=3 Eg=1.11 Vaf=74.03 Bf=255.9 Ne=1.307
++ Ise=14.34f Ikf=.2847 Xtb=1.5 Br=6.092 Nc=2 Isc=0 Ikr=0 Rc=1 Cjc=7.306p
++ Mjc=.3416 Vjc=.75 Fc=.5 Cje=22.01p Mje=.377 Vje=.75 Tr=46.91n Tf=411.1p
++ Itf=.6 Vtf=1.7 Xtf=3 Rb=10)
+
+.control
+  set noaskquit
+  set wr_singlescale
+
+  echo ""
+  echo "==== DC operating point (expected test-point readings) ===="
+  op
+  print v(Q2_E) v(Q4_B) v(Q3_B) v(Q4_C) v(Q3_C)
+  * Q4 bias current = v(Q4_E)/R8v ; supply current = -i(V2)
+  print v(Q4_E) i(V2)
+
+  echo ""
+  echo "==== AC: gain and bandwidth ===="
+  ac dec 200 10 1G
+  let magout = mag(v(OUT))
+  meas ac gain_max  MAX magout
+  meas ac gain_1M   FIND magout AT=1Meg
+  meas ac gain_10M  FIND magout AT=10Meg
+  meas ac f_high    WHEN magout=gain_max/sqrt(2) FALL=LAST
+  meas ac f_low     WHEN magout=gain_max/sqrt(2) RISE=1
+
+  echo ""
+  echo "==== Transient: output swing, load power, distortion ===="
+  tran 0.2n 4u 0 0.2n
+  meas tran vout_max MAX v(OUT) FROM=2u TO=4u
+  meas tran vout_min MIN v(OUT) FROM=2u TO=4u
+  let p_inst = v(OUT)*v(OUT)/1k
+  meas tran p_load_W AVG p_inst FROM=2u TO=4u
+  fourier 10Meg v(OUT)
+.endc
+
+.end
