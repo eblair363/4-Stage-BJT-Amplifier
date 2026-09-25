@@ -29,6 +29,6 @@ __MACOSX/
 
 # Working notes, not part of the project
 claude_code_amp_repo_prompt.md
-
+LEARN.md
 # Stale BOM export superseded by fab/Amplifier-BOM.csv
 hardware/Amplifier.csv
