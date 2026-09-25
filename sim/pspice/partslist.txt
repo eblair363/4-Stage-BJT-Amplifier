@@ -1,0 +1,13 @@
+Final Parts List
+Transistors (Q1-4): 2N2222
+Rb1: 1Mohm
+Re: 900ohm
+R3a: 10kohm
+R3b: 330ohm
+Re3: 9ohm
+R4a: 100kohm
+R4b: 22kohm
+Rc: 1kohm
+Rload: 1kohm
+Capacitors (C1-4): 100nF
+Vcc: 24V

@@ -1,0 +1,25 @@
+bwGainCursor.png: bandwidth and gain with the cursor enabled to see the values. You can
+see 50.69M under Y2. Gain is 37.178 and can be seen under Y2.
+
+bwGainNoCursor.png: same as above with no cursor. Just added the no cursor graphs for the
+report if its preferred.
+
+inputimpedanceCursor.png: input Z should be just >=300k. Hand calculations should have it
+at 935kohm for this design. Simulations results show 934.426kohm.
+
+inputimpedanceNoCursor.png: just no cursor
+
+outputpower.png: graph of avg power across load. Used transient analysis.
+
+schematics: one schematic is has Re = 2.2kohms, the other has one at 900ohm. The former
+is to get the bandwidth to 50MHz, latter to get it a little bit higher (approx. 61MHz).
+Need the higher bandwidth one for the physical design because there will be some loss
+during measurement. Included bias point enabled ones as well.
+
+Vpeak_to_peak.png: likely not necessary for the report. Shows that the voltage at the 
+collector of Q3 needs to be able to swing around 8-9V in either direction without
+clipping. Helped me determine the value of VCC.
+
+
+
+
