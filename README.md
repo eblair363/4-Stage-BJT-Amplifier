@@ -191,21 +191,6 @@ All simulated. A 1× probe or a length of coax into a 1 MΩ input is far worse �
 roughly 115 pF — and would put the corner near 2 MHz. Gain at 1 MHz is unaffected,
 so that is the honest number to compare against the 35 V/V spec.
 
-## Lessons learned
-
-- **A simulator will not tell you a part is about to burn.** Power rating is not
-  in the model. Check I²R on every resistor carrying real current, before ordering.
-- **"Close enough" on a plot deserves a second look.** The 9.6 mW reading was 4 %
-  off the spec and I let it go. The reason it was 4 % off was clipping, which is a
-  design error, not measurement slop.
-- **Output swing is set by bias current, not by supply voltage.** 24 V on the rail
-  does nothing if the stage can only source 6.6 mA into 500 Ω.
-- **Bias points built on one Vbe drop need a trim, not a tighter tolerance.**
-- **The instrument is part of the circuit.** A 10× probe cuts the measured
-  bandwidth of this design by two thirds.
-- **Test points are cheap.** Five pads make the difference between measuring the
-  bias and guessing at it.
-
 ## Status and roadmap
 
 - [x] PSpice design, course version
